@@ -14,17 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace tiny_accessibilitychecker\privacy;
+
 /**
- * Tiny customconfig plugin version details.
- *
+ * Privacy Subsystem implementation for the customconfig plugin for TinyMCE. *
  * @package    tiny_customconfig
  * @author     Guy Thomas <dev@citri.city>
  * @copyright  2023 Citricity Ltd
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version   = 2023071001;
-$plugin->requires  = 2022111800;
-$plugin->component = 'tiny_customconfig';
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Return the langstring identifier for the reason that no privacy provider needs to be implemented for this plugin.
+     *
+     * @return string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

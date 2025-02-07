@@ -1,4 +1,3 @@
-<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,16 +14,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tiny customconfig plugin version details.
+ * Tiny custom config common values.
  *
- * @package    tiny_customconfig
- * @author     Guy Thomas <dev@citri.city>
- * @copyright  2023 Citricity Ltd
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @module      tiny_customconfig/common
+ * @copyright   Citricity Ltd <dev@citri.city>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version   = 2023071001;
-$plugin->requires  = 2022111800;
-$plugin->component = 'tiny_customconfig';
+export default {
+    pluginName: 'tiny_customconfig/plugin',
+    component: 'tiny_customconfig'
+};

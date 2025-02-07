@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tiny customconfig plugin version details.
+ * Settings that allow turning on and off recordrtc features
  *
  * @package    tiny_customconfig
  * @author     Guy Thomas <dev@citri.city>
@@ -25,6 +25,18 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2023071001;
-$plugin->requires  = 2022111800;
-$plugin->component = 'tiny_customconfig';
+// Needed for constants.
+
+$ADMIN->add('editortiny', new admin_category('tiny_customconfig', new lang_string('pluginname', 'tiny_customconfig')));
+
+if ($ADMIN->fulltree) {
+    $name = get_string('config_json', 'tiny_customconfig');
+    $desc = get_string('config_json_desc', 'tiny_customconfig');
+    $setting = new admin_setting_configtextarea('tiny_customconfig/json', $name, $desc, '', PARAM_TEXT);
+    $settings->add($setting);
+
+    $name = get_string('config_json', 'tiny_customconfig');
+    $desc = get_string('config_json_desc', 'tiny_customconfig');
+    $setting = new admin_setting_configtextarea('tiny_customconfig/json', $name, $desc, '', PARAM_TEXT);
+    $settings->add($setting);
+}
