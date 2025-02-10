@@ -20,7 +20,6 @@ use context;
 use editor_tiny\editor;
 use editor_tiny\plugin;
 use editor_tiny\plugin_with_configuration;
-use MongoDB\Exception\Exception;
 
 /**
  * Plugin info
@@ -50,8 +49,7 @@ class plugininfo extends plugin implements plugin_with_configuration {
             return $json;
         }
 
-        $urls = array_map(fn(\moodle_url $url) => $url->out(), $PAGE->theme->css_urls($PAGE));
-
+        $urls = array_map(fn(\moodle_url $url) => $url->out(true), $PAGE->theme->css_urls($PAGE));
         try {
             $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
 
@@ -68,13 +66,20 @@ class plugininfo extends plugin implements plugin_with_configuration {
         if (is_array($data)) {
             // Check if it's an associative array (object-like) or a list
             $isAssoc = array_keys($data) !== range(0, count($data) - 1);
-            $newData = $isAssoc ? [] : [];
+            $newData = [];
 
             foreach ($data as $key => $value) {
                 if ($value === self::TOKEN_THEMEURLS) {
                     // If it's inside an indexed array, spread URLs
                     if (!$isAssoc) {
+                        $newData = [...$data];
+                        // Remove token from newData before merge.
+                        $newData = array_filter($newData, fn($item) => $item !== self::TOKEN_THEMEURLS);
                         $newData = array_merge($newData, $urls);
+
+                        // Break out of loop and re-run with new data.
+                        $newData = self::replace_themeurls_recursive($newData, $urls);
+                        break;
                     } else {
                         // If it's inside an object, replace it directly
                         $newData[$key] = $urls;
