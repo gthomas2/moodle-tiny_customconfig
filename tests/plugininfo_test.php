@@ -52,7 +52,11 @@ class plugininfo_test extends \advanced_testcase {
             ->onlyMethods(['__get'])
             ->getMock();
 
-        $page->method('__get')->with('theme')->willReturn($thememock);
+        $page->method('__get')->willReturnMap([
+            ['theme', $thememock],
+            ['bodyid', 'someid']
+        ]);
+
         return $page;
     }
 
