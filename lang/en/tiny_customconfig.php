@@ -52,6 +52,7 @@ E.g.
 <h3>Tokens</h3>
 
 <strong>~themeUrls~</strong>
+<p>This token allows you to apply your theme css urls to tinyMce</p>
 <p>Example</p>
 <pre>
     <code>
@@ -60,6 +61,7 @@ E.g.
 </pre>
 
 <strong>~wwwRoot~</strong>
+<p>This token is replaced with the moodle www root</p>
 <p>Example</p>
 <pre>
     <code>
@@ -67,14 +69,26 @@ E.g.
     </code>
 </pre>
 
+<strong>~bodyClass~</strong>
+<p>This token is replaced with the current pages body classes</p>
+<p>Example</p>
+<pre>
+    <code>
+    {"body_class": "~bodyClass~"}
+    </code>
+</pre>
+
 <strong>Combinations</strong>
 <p>Example</p>
 <pre>
     <code>
-    {"content_css": [
-        "~themeUrls~",
-        "~wwwRoot~/theme/mytheme/fonts/fonts.css"
-    ]}
+    {
+        "content_css": [
+            "~themeUrls~",
+            "~wwwRoot~/theme/mytheme/fonts/fonts.css"
+        ],
+        "body_class": "~bodyClass~"
+    }
     </code>
 </pre>
 

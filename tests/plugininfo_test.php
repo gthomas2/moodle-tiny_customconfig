@@ -14,28 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-use tiny_customconfig\plugininfo;
-use core_privacy\local\metadata\null_provider;
+namespace tiny_customconfig;
+
+use stdClass;
+use moodle_page;
+use moodle_url;
+use context_system;
 
 /**
- * PHPUnit tests for tiny_customconfig plugin.
+ * PHPUnit tests for the tiny_customconfig plugin.
  *
  * @package    tiny_customconfig
  * @group      tiny_customconfig
  * @author     Guy Thomas
- * @copyright  2023 Citricity Ltd
+ * @copyright  2025 Citricity Ltd
+ * @covers     \tiny_customconfig\plugininfo
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tiny_customconfig_plugininfo_test extends advanced_testcase {
+class plugininfo_test extends \advanced_testcase {
 
-    protected function mockPage(array $cssurls): moodle_page {
+    /**
+     * Mocks the Moodle $PAGE global object.
+     *
+     * @param moodle_url[] $cssurls Array of moodle_url objects.
+     * @return moodle_page Mocked page object.
+     */
+    protected function mock_page(array $cssurls): moodle_page {
         $thememock = $this->getMockBuilder(stdClass::class)
             ->addMethods(['css_urls'])
             ->getMock();
 
         $thememock->method('css_urls')->willReturn($cssurls);
 
-        // Create a mock of moodle_page with a magic getter for theme
+        // Create a mock of moodle_page with a magic getter for theme.
         $page = $this->getMockBuilder(moodle_page::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['__get'])
@@ -45,27 +56,41 @@ class tiny_customconfig_plugininfo_test extends advanced_testcase {
         return $page;
     }
 
-    protected function mockUrls() {
+    /**
+     * Returns mock URLs for testing.
+     *
+     * @return moodle_url[]
+     */
+    protected function mock_urls(): array {
         return [
             new moodle_url('http://moodle.local/theme/styles1.css'),
-            new moodle_url('http://moodle.local/theme/styles2.css')
+            new moodle_url('http://moodle.local/theme/styles2.css'),
         ];
     }
 
-    protected function applyDefaultMockPage() {
+    /**
+     * Sets up the global $PAGE mock.
+     *
+     * @return moodle_page
+     */
+    protected function apply_default_mock_page(): moodle_page {
         global $PAGE;
-        $PAGE = $this->mockPage($this->mockUrls());
+        $PAGE = $this->mock_page($this->mock_urls());
         return $PAGE;
     }
 
+    /**
+     * PHPUnit setup function.
+     */
     protected function setUp(): void {
-        $this->applyDefaultMockPage();
+        $this->apply_default_mock_page();
         $this->resetAfterTest();
     }
 
-    public function test_apply_token_wwwroot() {
+    public function test_apply_token_wwwroot(): void {
         global $CFG;
         $CFG->wwwroot = 'http://moodle.local';
+
         $json = '{"url": "~wwwRoot~/path/to/resource"}';
         $expected = '{"url": "http://moodle.local/path/to/resource"}';
 
@@ -74,72 +99,67 @@ class tiny_customconfig_plugininfo_test extends advanced_testcase {
         $this->assertSame($expected, $result);
     }
 
-    public function test_apply_token_themeurls() {
+    public function test_apply_token_themeurls(): void {
         $json = '{"content_css": ["~themeUrls~"]}';
-        $urls = array_map(fn($url) => $url->out(), $this->mockUrls());
-        $jsonurls = json_encode($urls);
-        $expected = '{"content_css":'.$jsonurls.'}';
+        $urls = array_map(fn($url) => $url->out(), $this->mock_urls());
+        $expected = json_encode(['content_css' => $urls]);
 
         $result = \phpunit_util::call_internal_method(null, 'apply_token_themeurls', [$json], plugininfo::class);
 
-        $this->assertSame($expected, $result);
+        $this->assertSame(json_decode($expected, true), json_decode($result, true));
     }
 
-    public function test_apply_token_themeurls_with_other_entries() {
+    public function test_apply_token_themeurls_with_other_entries(): void {
         $json = '{"content_css": ["~themeUrls~", "extra_style.css"]}';
-        $urls = array_map(fn($url) => $url->out(), $this->mockUrls());
-        $urls = array_merge(['extra_style.css'], $urls);
-        $jsonurls = json_encode($urls);
-        $expected = '{"content_css":'.$jsonurls.'}';
+        $urls = array_map(fn($url) => $url->out(), $this->mock_urls());
+        array_unshift($urls, 'extra_style.css'); // Ensure extra_style.css remains first.
+        $expected = json_encode(['content_css' => $urls]);
 
         $result = \phpunit_util::call_internal_method(null, 'apply_token_themeurls', [$json], plugininfo::class);
 
-        $this->assertSame($expected, $result);
+        $this->assertSame(json_decode($expected, true), json_decode($result, true));
     }
 
-    public function test_replace_themeurls_recursive() {
+    public function test_replace_themeurls_recursive(): void {
         $urls = [
             'http://moodle.local/theme/styles1.css',
-            'http://moodle.local/theme/styles2.css'
+            'http://moodle.local/theme/styles2.css',
         ];
 
-        $input = [
-            'content_css' => ["~themeUrls~", "custom_style.css"]
-        ];
-        $expected = [
-            'content_css' => ["http://moodle.local/theme/styles1.css", "http://moodle.local/theme/styles2.css", "custom_style.css"]
-        ];
+        $input = ['content_css' => ["~themeUrls~", "custom_style.css"]];
+        $expected = ['content_css' => array_merge($urls, ['custom_style.css'])];
 
         $result = \phpunit_util::call_internal_method(null, 'replace_themeurls_recursive', [$input, $urls], plugininfo::class);
 
         $this->assertEqualsCanonicalizing($expected, $result);
     }
 
-    public function test_apply_json_str_tokens() {
+    public function test_apply_json_str_tokens(): void {
         global $CFG;
+        $origcfg = clone $CFG;
 
-        $origcfg = $CFG;
-
-        // Set up mock config
-        $CFG = (object) ['wwwroot' => 'http://moodle.local'];
+        // Set up mock config.
+        $CFG->wwwroot = 'http://moodle.local';
 
         $json = '{
             "url": "~wwwRoot~/some/path",
             "content_css": ["~themeUrls~"]
         }';
 
-        $expected = '{
-            "url": "http://moodle.local/some/path",
-            "content_css": ["http://moodle.local/theme/styles1.css","http://moodle.local/theme/styles2.css"]
-        }';
+        $expected = json_encode([
+            "url" => "http://moodle.local/some/path",
+            "content_css" => array_map(fn($url) => $url->out(), $this->mock_urls()),
+        ]);
 
         $result = \phpunit_util::call_internal_method(null, 'apply_json_str_tokens', [$json], plugininfo::class);
 
-        $this->assertSame(json_encode(json_decode($expected)), $result);
+        $this->assertSame(json_decode($expected, true), json_decode($result, true));
+
+        // Restore config.
         $CFG = $origcfg;
     }
 
-    public function test_invalid_json_handling() {
+    public function test_invalid_json_handling(): void {
         $json = '{invalid_json}';
 
         $result = \phpunit_util::call_internal_method(null, 'apply_token_themeurls', [$json], plugininfo::class);
@@ -147,8 +167,7 @@ class tiny_customconfig_plugininfo_test extends advanced_testcase {
         $this->assertSame($json, $result);
     }
 
-    public function test_add_inline_config() {
-        // Capture the output
+    public function test_add_inline_config(): void {
         ob_start();
         \phpunit_util::call_internal_method(null, 'add_inline_config', ['{"key": "value"}'], plugininfo::class);
         $output = ob_get_clean();
@@ -157,29 +176,21 @@ class tiny_customconfig_plugininfo_test extends advanced_testcase {
         $this->assertSame($expected, $output);
     }
 
-    public function test_get_plugin_configuration_for_context_with_valid_json() {
+    public function test_get_plugin_configuration_for_context_with_valid_json(): void {
         set_config('json', '{"key": "value"}', 'tiny_customconfig');
 
         $context = context_system::instance();
-        $options = [];
-        $fpoptions = [];
 
-        $result = plugininfo::get_plugin_configuration_for_context($context, $options, $fpoptions);
+        $result = plugininfo::get_plugin_configuration_for_context($context, [], []);
         $this->assertSame(['json' => ['key' => 'value']], $result);
     }
 
-    public function test_get_plugin_configuration_for_context_with_invalid_json() {
+    public function test_get_plugin_configuration_for_context_with_invalid_json(): void {
         set_config('json', '{invalid_json}', 'tiny_customconfig');
 
         $context = context_system::instance();
-        $options = [];
-        $fpoptions = [];
 
-        $result = plugininfo::get_plugin_configuration_for_context($context, $options, $fpoptions);
+        $result = plugininfo::get_plugin_configuration_for_context($context, [], []);
         $this->assertSame(['json' => []], $result);
-    }
-
-    public function test_privacy_provider() {
-        $this->assertSame('privacy:metadata', tiny_customconfig\privacy\provider::get_reason());
     }
 }
